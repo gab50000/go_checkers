@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 )
 
 type playerColor int
@@ -19,7 +20,7 @@ const (
 )
 
 const (
-	man = iota
+	man tokenType = iota
 	king
 )
 
@@ -260,6 +261,35 @@ func getKingMoves(color playerColor, pos Position, board *[boardSize][boardSize]
 
 	}
 	return moves, jumps
+}
+
+func countTokens(board *[boardSize][boardSize]string) (counter map[playerColor]int) {
+	counter = make(map[playerColor]int)
+	for _, row := range board {
+		for _, elem := range row {
+			if strings.HasPrefix(elem, "B") {
+				counter[black]++
+			} else if strings.HasPrefix(elem, "W") {
+				counter[white]++
+			}
+		}
+	}
+	return counter
+}
+
+func evaluateBoard(color playerColor, board *[boardSize][boardSize]string) int {
+	tokenCounter := countTokens(board)
+	enemyColor := oppositeColor(color)
+
+	enemyCount := tokenCounter[enemyColor]
+	selfCount := tokenCounter[color]
+
+	if enemyCount == 0 {
+		return 10
+	} else if selfCount == 0 {
+		return -10
+	}
+	return selfCount - enemyCount
 }
 
 func main() {

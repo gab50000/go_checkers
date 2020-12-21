@@ -82,3 +82,13 @@ func TestKingMoves(t *testing.T) {
 	}
 
 }
+
+func TestEvaluateBoard(t *testing.T) {
+	board := getBoard()
+
+	score := evaluateBoard(white, &board)
+	target := 0
+	if score != target {
+		t.Errorf("Score is %d, but should be %d", score, target)
+	}
+}
