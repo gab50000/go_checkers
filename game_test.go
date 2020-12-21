@@ -92,3 +92,26 @@ func TestEvaluateBoard(t *testing.T) {
 		t.Errorf("Score is %d, but should be %d", score, target)
 	}
 }
+
+func TestMakeMove(t *testing.T) {
+	board := [8][8]string{}
+	board[2][2] = "BK"
+	board[6][6] = "WM"
+
+	move := Move{Position{2, 2}, Position{7, 7}}
+
+	newBoard := makeMove(move, board)
+
+	if newBoard[2][2] != "" {
+		t.Errorf("Origin contains %s, but should be empty", newBoard[2][2])
+	}
+
+	if newBoard[6][6] != "" {
+		t.Errorf("Field before destination contains %s, but should be empty", newBoard[6][6])
+	}
+
+	if newBoard[7][7] != "BK" {
+		t.Errorf("Destination contains %s, but should contain 'BK'", newBoard[7][7])
+	}
+
+}

@@ -292,6 +292,25 @@ func evaluateBoard(color playerColor, board *[boardSize][boardSize]string) int {
 	return selfCount - enemyCount
 }
 
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func makeMove(move Move, board [boardSize][boardSize]string) [boardSize][boardSize]string {
+	token := board[move.from.i][move.from.j]
+	board[move.to.i][move.to.j] = token
+	board[move.from.i][move.from.j] = ""
+	dI := move.from.i - move.to.i
+	dI /= abs(dI)
+	dJ := move.from.j - move.to.j
+	dJ /= abs(dJ)
+	board[move.to.i+dI][move.to.j+dJ] = ""
+	return board
+}
+
 func main() {
 	board := getBoard()
 	printBoard(&board)
