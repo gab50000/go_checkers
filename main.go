@@ -102,14 +102,32 @@ func getPositions(color playerColor, tok tokenType, board *[boardSize][boardSize
 	return positions
 }
 
-func getMoves(color playerColor, dir direction, board *[boardSize][boardSize]string) []Move {
-	moves := make([]Move, 0)
+func getMoves(color playerColor, dir direction, board *[boardSize][boardSize]string) (moves []Move) {
 
 	manPositions := getPositions(color, man, board)
-	// kingPositions := getPositions(color, king, board)
+	kingPositions := getPositions(color, king, board)
+
+	for _, pos := range manPositions {
+		moves = append(moves, getManJumps(color, dir, pos, board)...)
+	}
+
+	for _, pos := range kingPositions {
+		_, kingJumps := getKingMoves(color, pos, board)
+		moves = append(moves, kingJumps...)
+	}
+
+	if len(moves) > 0 {
+		return moves
+	}
 
 	for _, pos := range manPositions {
 		moves = append(moves, getManMoves(color, dir, pos, board)...)
+	}
+
+	for _, pos := range kingPositions {
+		kingMoves, _ := getKingMoves(color, pos, board)
+		moves = append(moves, kingMoves...)
+
 	}
 	return moves
 }
@@ -200,7 +218,7 @@ func getManJumps(
 
 	for dj := -1; dj <= 1; dj += 2 {
 		jEnemy = j + dj
-		if jEnemy == 0 || jEnemy == 7 {
+		if jEnemy == 0 || jEnemy == 7 || !withinBounds(jEnemy) {
 			continue
 		}
 		jDestination = j + 2*dj
@@ -215,7 +233,7 @@ func getManJumps(
 	return moves
 }
 
-func getKingMoves(color playerColor, pos Position, board *[boardSize][boardSize]string) (moves []Move) {
+func getKingMoves(color playerColor, pos Position, board *[boardSize][boardSize]string) (moves []Move, jumps []Move) {
 	i, j := pos.i, pos.j
 	enemyColor := oppositeColor(color)
 	enemyPrefix := colorPrefix(enemyColor)
@@ -235,20 +253,13 @@ func getKingMoves(color playerColor, pos Position, board *[boardSize][boardSize]
 			}
 
 			if board[ii][jj][:1] == enemyPrefix && board[iDest][jDest] == "" {
-				moves = append(moves, Move{Position{i, j}, Position{iDest, jDest}})
+				jumps = append(jumps, Move{Position{i, j}, Position{iDest, jDest}})
 			}
 
 		}
 
 	}
-	return moves
-}
-
-func getJumps(color playerColor, dir direction, board *[boardSize][boardSize]string) []Move {
-	moves := make([]Move, 0)
-	// positions := getPositions(color, board)
-
-	return moves
+	return moves, jumps
 }
 
 func main() {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -76,11 +75,10 @@ func TestKingMoves(t *testing.T) {
 	board[3][3] = "WK"
 	board[6][6] = "BM"
 
-	moves := getKingMoves(white, Position{3, 3}, &board)
-	fmt.Println("Moves:", moves)
+	moves, jumps := getKingMoves(white, Position{3, 3}, &board)
 
-	if len(moves) != 3+3+3+3 {
-		t.Errorf("length(moves) == %d, should be 12", len(moves))
+	if len(moves)+len(jumps) != 12 {
+		t.Errorf("len(moves) len(jumps) == %d, should be 12", len(moves)+len(jumps))
 	}
 
 }
