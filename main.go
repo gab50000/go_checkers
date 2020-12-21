@@ -7,6 +7,8 @@ func getBoard() [8][8]string {
 	for i := 0; i < 4; i++ {
 		board[0][2*i] = "BM"
 		board[1][2*i+1] = "BM"
+		board[2][2*i] = "BM"
+		board[5][2*i+1] = "WM"
 		board[6][2*i] = "WM"
 		board[7][2*i+1] = "WM"
 	}
