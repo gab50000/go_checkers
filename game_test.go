@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -67,4 +68,19 @@ func TestManJumps(t *testing.T) {
 	if len(jumps) != 0 {
 		t.Errorf("length(jumps) == %d, should be 0", len(jumps))
 	}
+}
+
+func TestKingMoves(t *testing.T) {
+	board := [8][8]string{}
+
+	board[3][3] = "WK"
+	board[6][6] = "BM"
+
+	moves := getKingMoves(white, Position{3, 3}, &board)
+	fmt.Println("Moves:", moves)
+
+	if len(moves) != 3+3+3+3 {
+		t.Errorf("length(moves) == %d, should be 12", len(moves))
+	}
+
 }

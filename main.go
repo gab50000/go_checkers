@@ -6,6 +6,7 @@ import (
 
 type playerColor int
 type direction int
+type tokenType int
 
 const (
 	white playerColor = iota
@@ -16,6 +17,13 @@ const (
 	up direction = iota
 	down
 )
+
+const (
+	man = iota
+	king
+)
+
+const boardSize = 8
 
 // Position of a token
 type Position struct {
@@ -29,8 +37,8 @@ type Move struct {
 	to   Position
 }
 
-func getBoard() [8][8]string {
-	board := [8][8]string{}
+func getBoard() [boardSize][boardSize]string {
+	board := [boardSize][boardSize]string{}
 	for i := 0; i < 4; i++ {
 		board[0][2*i] = "BM"
 		board[1][2*i+1] = "BM"
@@ -43,7 +51,7 @@ func getBoard() [8][8]string {
 	return board
 }
 
-func printBoard(board *[8][8]string) {
+func printBoard(board *[boardSize][boardSize]string) {
 	const letters = "   A   B   C   D   E   F   G   H"
 	fmt.Println(letters)
 	for i, row := range board {
@@ -68,7 +76,7 @@ func printBoard(board *[8][8]string) {
 	fmt.Println(letters)
 }
 
-func getPositions(color playerColor, board *[8][8]string) []Position {
+func getPositions(color playerColor, tok tokenType, board *[boardSize][boardSize]string) []Position {
 	positions := make([]Position, 0, 12)
 	var prefix string
 	if color == black {
@@ -76,10 +84,17 @@ func getPositions(color playerColor, board *[8][8]string) []Position {
 	} else {
 		prefix = "W"
 	}
+	var postfix string
+	if tok == man {
+		postfix = "M"
+	} else {
+		postfix = "K"
+	}
+	target := prefix + postfix
 
 	for i, row := range board {
 		for j, elem := range row {
-			if elem != "" && elem[:1] == prefix {
+			if elem == target {
 				positions = append(positions, Position{i, j})
 			}
 		}
@@ -87,18 +102,19 @@ func getPositions(color playerColor, board *[8][8]string) []Position {
 	return positions
 }
 
-func getMoves(color playerColor, dir direction, board *[8][8]string) []Move {
+func getMoves(color playerColor, dir direction, board *[boardSize][boardSize]string) []Move {
 	moves := make([]Move, 0)
 
-	positions := getPositions(color, board)
+	manPositions := getPositions(color, man, board)
+	// kingPositions := getPositions(color, king, board)
 
-	for _, pos := range positions {
+	for _, pos := range manPositions {
 		moves = append(moves, getManMoves(color, dir, pos, board)...)
 	}
 	return moves
 }
 
-func getManMoves(color playerColor, dir direction, pos Position, board *[8][8]string) []Move {
+func getManMoves(color playerColor, dir direction, pos Position, board *[boardSize][boardSize]string) []Move {
 	moves := make([]Move, 0, 2)
 	i, j := pos.i, pos.j
 	var ii int
@@ -135,23 +151,36 @@ func oppositeColor(color playerColor) playerColor {
 	return oppColor
 }
 
+func colorPrefix(color playerColor) (prefix string) {
+	switch color {
+	case black:
+		prefix = "B"
+	case white:
+		prefix = "W"
+	}
+	return prefix
+}
+
+func withinBounds(indices ...int) bool {
+	for _, idx := range indices {
+		if idx < 0 || idx >= boardSize {
+			return false
+		}
+	}
+	return true
+}
+
 func getManJumps(
 	color playerColor,
 	dir direction,
 	pos Position,
-	board *[8][8]string) []Move {
+	board *[boardSize][boardSize]string) []Move {
 
 	moves := make([]Move, 0)
 	i, j := pos.i, pos.j
 
 	enemyColor := oppositeColor(color)
-	var enemyPrefix string
-	switch enemyColor {
-	case black:
-		enemyPrefix = "B"
-	case white:
-		enemyPrefix = "W"
-	}
+	enemyPrefix := colorPrefix(enemyColor)
 
 	var iEnemy, iDestination, jEnemy, jDestination int
 	switch {
@@ -186,11 +215,36 @@ func getManJumps(
 	return moves
 }
 
-// func getKingMoves(color playerColor, dir direction, pos Position) {}
+func getKingMoves(color playerColor, pos Position, board *[boardSize][boardSize]string) (moves []Move) {
+	i, j := pos.i, pos.j
+	enemyColor := oppositeColor(color)
+	enemyPrefix := colorPrefix(enemyColor)
 
-// func getKingJumps(color playerColor, dir direction, pos Position) {}
+	for di := -1; di < 2; di += 2 {
+		for dj := -1; dj < 2; dj += 2 {
+			ii, jj := i+di, j+dj
+			for withinBounds(ii, jj) && board[ii][jj] == "" {
+				moves = append(moves, Move{Position{i, j}, Position{ii, jj}})
+				ii, jj = ii+di, jj+dj
+			}
 
-func getJumps(color playerColor, dir direction, board *[8][8]string) []Move {
+			iDest, jDest := ii+di, jj+dj
+
+			if !withinBounds(iDest, jDest) {
+				continue
+			}
+
+			if board[ii][jj][:1] == enemyPrefix && board[iDest][jDest] == "" {
+				moves = append(moves, Move{Position{i, j}, Position{iDest, jDest}})
+			}
+
+		}
+
+	}
+	return moves
+}
+
+func getJumps(color playerColor, dir direction, board *[boardSize][boardSize]string) []Move {
 	moves := make([]Move, 0)
 	// positions := getPositions(color, board)
 
@@ -200,5 +254,5 @@ func getJumps(color playerColor, dir direction, board *[8][8]string) []Move {
 func main() {
 	board := getBoard()
 	printBoard(&board)
-	fmt.Println(getPositions(white, &board))
+	fmt.Println(getPositions(white, man, &board))
 }
