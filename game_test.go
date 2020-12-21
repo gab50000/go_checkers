@@ -48,4 +48,23 @@ func TestManJumps(t *testing.T) {
 		t.Error("Expected", target, "got", jump)
 	}
 
+	board = [8][8]string{}
+	board[0][0] = "BM"
+	board[1][1] = "WM"
+
+	jumps = getManJumps(white, up, Position{4, 4}, &board)
+
+	if len(jumps) != 0 {
+		t.Errorf("length(jumps) == %d, should be 0", len(jumps))
+	}
+
+	board = [8][8]string{}
+	board[6][6] = "BM"
+	board[7][7] = "WM"
+
+	jumps = getManJumps(black, down, Position{4, 4}, &board)
+
+	if len(jumps) != 0 {
+		t.Errorf("length(jumps) == %d, should be 0", len(jumps))
+	}
 }
