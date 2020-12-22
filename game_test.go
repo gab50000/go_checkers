@@ -89,9 +89,9 @@ func TestEvaluateBoard(t *testing.T) {
 	board := getBoard()
 
 	score := evaluateCurrentBoard(white, &board)
-	target := 0
+	target := 0.0
 	if score != target {
-		t.Errorf("Score is %d, but should be %d", score, target)
+		t.Errorf("Score is %f, but should be %f", score, target)
 	}
 }
 
@@ -119,16 +119,16 @@ func TestMakeMove(t *testing.T) {
 }
 
 func TestMin(t *testing.T) {
-	numbers := []int{3, 4, 1, -123, 44}
+	numbers := []float64{3, 4, 1, -123, 44}
 
 	m, _ := min(numbers)
-	target := -123
+	target := -123.0
 
 	if m != target {
-		t.Errorf("m == %d, should be %d", m, target)
+		t.Errorf("m == %f, should be %f", m, target)
 	}
 
-	numbers = []int{}
+	numbers = []float64{}
 	_, err := min(numbers)
 	if err == nil {
 		t.Errorf("An empty slice should throw an error")

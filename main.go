@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 type playerColor int
@@ -292,7 +294,7 @@ func countTokens(board *[boardSize][boardSize]string) (nWhite, nBlack int) {
 	return nWhite, nBlack
 }
 
-func evaluateCurrentBoard(color playerColor, board *[boardSize][boardSize]string) int {
+func evaluateCurrentBoard(color playerColor, board *[boardSize][boardSize]string) float64 {
 	nWhite, nBlack := countTokens(board)
 
 	var enemyCount, selfCount int
@@ -314,7 +316,7 @@ func evaluateCurrentBoard(color playerColor, board *[boardSize][boardSize]string
 	} else if selfCount == 0 {
 		return -10
 	}
-	return selfCount - enemyCount
+	return float64(selfCount - enemyCount)
 }
 
 func abs(x int) int {
@@ -350,7 +352,7 @@ func makeMove(move Move, dir direction, board [boardSize][boardSize]string) [boa
 	return board
 }
 
-func min(numbers []int) (m int, e error) {
+func min(numbers []float64) (m float64, e error) {
 	if len(numbers) == 0 {
 		return 0, errors.New("slice is empty")
 	}
@@ -364,11 +366,24 @@ func min(numbers []int) (m int, e error) {
 	return m, nil
 }
 
-func evaluateBoard(color playerColor, dir direction, board *[boardSize][boardSize]string, depthRemaining int) int {
+func evaluateBoard(color playerColor, dir direction, board *[boardSize][boardSize]string, depthRemaining int, bestScoreBlack float64, bestScoreWhite float64) (score float64) {
+
+	var bestOpponentScore *float64
+	var bestSelfScore *float64
+	switch color {
+	case black:
+		bestOpponentScore = &bestScoreWhite
+		bestSelfScore = &bestScoreBlack
+	case white:
+		bestOpponentScore = &bestScoreBlack
+		bestSelfScore = &bestScoreWhite
+
+	}
+
 	if depthRemaining == 0 {
 		return evaluateCurrentBoard(color, board)
 	}
-	scores := make([]int, 0)
+	scores := make([]float64, 0)
 
 	moves := getMoves(color, dir, board)
 
@@ -378,8 +393,17 @@ func evaluateBoard(color playerColor, dir direction, board *[boardSize][boardSiz
 
 	for _, move := range moves {
 		newBoard := makeMove(move, dir, *board)
-		newScore := evaluateBoard(oppositeColor(color), oppositeDirection(dir), &newBoard, depthRemaining-1)
-		scores = append(scores, newScore)
+		newOppScore := evaluateBoard(oppositeColor(color), oppositeDirection(dir), &newBoard, depthRemaining-1, bestScoreBlack, bestScoreWhite)
+		newScore := -newOppScore
+
+		if newScore > *bestSelfScore {
+			*bestSelfScore = newScore
+		}
+
+		if *bestSelfScore > *bestOpponentScore {
+			return *bestSelfScore
+		}
+		scores = append(scores, newOppScore)
 	}
 	score, err := min(scores)
 	if err != nil {
@@ -390,24 +414,29 @@ func evaluateBoard(color playerColor, dir direction, board *[boardSize][boardSiz
 }
 
 func chooseBestMove(color playerColor, dir direction, board *[boardSize][boardSize]string, maxDepth int) Move {
-	var bestScore int
+	bestScoreBlack, bestScoreWhite := math.Inf(-1), math.Inf(-1)
 	var bestMove Move
 	moves := getMoves(color, dir, board)
 
-	for i, move := range moves {
+	var bestSelfScore *float64
+	switch color {
+	case black:
+		bestSelfScore = &bestScoreBlack
+	case white:
+		bestSelfScore = &bestScoreWhite
+	}
+
+	for _, move := range moves {
+		var newScore float64
+		log.Print("Evaluate move", move, ":")
 		newBoard := makeMove(move, dir, *board)
-		newScore := -evaluateBoard(oppositeColor(color), oppositeDirection(dir), &newBoard, maxDepth)
+		newScore = -evaluateBoard(oppositeColor(color), oppositeDirection(dir), &newBoard, maxDepth, bestScoreBlack, bestScoreWhite)
 
-		if i == 0 {
-			bestScore = newScore
+		if newScore > *bestSelfScore {
 			bestMove = move
-			continue
+			*bestSelfScore = newScore
 		}
-
-		if newScore > bestScore {
-			bestMove = move
-			bestScore = newScore
-		}
+		log.Println("-> Score:", newScore)
 
 	}
 	return bestMove
@@ -416,6 +445,7 @@ func chooseBestMove(color playerColor, dir direction, board *[boardSize][boardSi
 func clear() {
 	cmd := exec.Command("clear")
 	cmd.Stdout = os.Stdout
+	cmd.Run()
 }
 
 func main() {
@@ -433,6 +463,7 @@ func main() {
 		board = makeMove(move, dir, board)
 		clear()
 		printBoard(&board)
+		time.Sleep(300 * time.Millisecond)
 		color = oppositeColor(color)
 		dir = oppositeDirection(dir)
 
