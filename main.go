@@ -320,6 +320,11 @@ func toKing(token string) string {
 }
 
 func makeMove(move Move, dir direction, board [boardSize][boardSize]string) [boardSize][boardSize]string {
+	noMove := Move{Position{0, 0}, Position{0, 0}}
+	if move == noMove {
+		return board
+	}
+
 	destI, destJ := move.To.I, move.To.J
 	origI, origJ := move.From.I, move.From.J
 	token := board[origI][origJ]
@@ -411,9 +416,10 @@ func main() {
 	board := getBoard()
 	printBoard(&board)
 
-	maxDepth := 5
+	maxDepth := 7
 	color := white
 	dir := up
+	var counter map[playerColor]int
 
 	for true {
 		move := chooseBestMove(color, dir, &board, maxDepth)
@@ -423,5 +429,10 @@ func main() {
 		printBoard(&board)
 		color = oppositeColor(color)
 		dir = oppositeDirection(dir)
+
+		counter = countTokens(&board)
+		if counter[white] == 0 || counter[black] == 0 {
+			break
+		}
 	}
 }
