@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -28,14 +30,14 @@ const boardSize = 8
 
 // Position of a token
 type Position struct {
-	i int
-	j int
+	I int
+	J int
 }
 
 // Move holding start and end position
 type Move struct {
-	from Position
-	to   Position
+	From Position
+	To   Position
 }
 
 func getBoard() [boardSize][boardSize]string {
@@ -135,7 +137,7 @@ func getMoves(color playerColor, dir direction, board *[boardSize][boardSize]str
 
 func getManMoves(color playerColor, dir direction, pos Position, board *[boardSize][boardSize]string) []Move {
 	moves := make([]Move, 0, 2)
-	i, j := pos.i, pos.j
+	i, j := pos.I, pos.J
 	var ii int
 	switch {
 	case dir == up && i > 0:
@@ -170,6 +172,17 @@ func oppositeColor(color playerColor) playerColor {
 	return oppColor
 }
 
+func oppositeDirection(dir direction) direction {
+	var newDir direction
+	switch dir {
+	case up:
+		newDir = down
+	case down:
+		newDir = up
+	}
+	return newDir
+}
+
 func colorPrefix(color playerColor) (prefix string) {
 	switch color {
 	case black:
@@ -196,7 +209,7 @@ func getManJumps(
 	board *[boardSize][boardSize]string) []Move {
 
 	moves := make([]Move, 0)
-	i, j := pos.i, pos.j
+	i, j := pos.I, pos.J
 
 	enemyColor := oppositeColor(color)
 	enemyPrefix := colorPrefix(enemyColor)
@@ -235,7 +248,7 @@ func getManJumps(
 }
 
 func getKingMoves(color playerColor, pos Position, board *[boardSize][boardSize]string) (moves []Move, jumps []Move) {
-	i, j := pos.i, pos.j
+	i, j := pos.I, pos.J
 	enemyColor := oppositeColor(color)
 	enemyPrefix := colorPrefix(enemyColor)
 
@@ -277,7 +290,7 @@ func countTokens(board *[boardSize][boardSize]string) (counter map[playerColor]i
 	return counter
 }
 
-func evaluateBoard(color playerColor, board *[boardSize][boardSize]string) int {
+func evaluateCurrentBoard(color playerColor, board *[boardSize][boardSize]string) int {
 	tokenCounter := countTokens(board)
 	enemyColor := oppositeColor(color)
 
@@ -300,14 +313,14 @@ func abs(x int) int {
 }
 
 func makeMove(move Move, board [boardSize][boardSize]string) [boardSize][boardSize]string {
-	token := board[move.from.i][move.from.j]
-	board[move.to.i][move.to.j] = token
-	board[move.from.i][move.from.j] = ""
-	dI := move.from.i - move.to.i
+	token := board[move.From.I][move.From.J]
+	board[move.To.I][move.To.J] = token
+	board[move.From.I][move.From.J] = ""
+	dI := move.From.I - move.To.I
 	dI /= abs(dI)
-	dJ := move.from.j - move.to.j
+	dJ := move.From.J - move.To.J
 	dJ /= abs(dJ)
-	board[move.to.i+dI][move.to.j+dJ] = ""
+	board[move.To.I+dI][move.To.J+dJ] = ""
 	return board
 }
 
@@ -323,6 +336,56 @@ func min(numbers []int) (m int, e error) {
 		}
 	}
 	return m, nil
+}
+
+func evaluateBoard(color playerColor, dir direction, board *[boardSize][boardSize]string, depthRemaining int) int {
+	if depthRemaining == 0 {
+		return evaluateCurrentBoard(color, board)
+	}
+	scores := make([]int, 0)
+
+	moves := getMoves(color, dir, board)
+
+	if len(moves) == 0 {
+		return evaluateCurrentBoard(color, board)
+	}
+
+	for _, move := range moves {
+		newBoard := makeMove(move, *board)
+		newScore := evaluateBoard(oppositeColor(color), oppositeDirection(dir), &newBoard, depthRemaining-1)
+		scores = append(scores, newScore)
+	}
+	log.Println("Choosing between moves:", moves)
+	score, err := min(scores)
+	if err != nil {
+		panic("oops")
+	}
+
+	return -score
+}
+
+func chooseBestMove(color playerColor, dir direction, board *[boardSize][boardSize]string, maxDepth int) Move {
+	var bestScore int
+	var bestMove Move
+	moves := getMoves(color, dir, board)
+
+	for i, move := range moves {
+		newBoard := makeMove(move, *board)
+		newScore := -evaluateBoard(oppositeColor(color), oppositeDirection(dir), &newBoard, maxDepth)
+
+		if i == 0 {
+			bestScore = newScore
+			bestMove = move
+			continue
+		}
+
+		if newScore > bestScore {
+			bestMove = move
+			bestScore = newScore
+		}
+
+	}
+	return bestMove
 }
 
 func main() {

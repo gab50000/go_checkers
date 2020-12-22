@@ -2,6 +2,8 @@ package main
 
 import (
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestManMoves(t *testing.T) {
@@ -86,7 +88,7 @@ func TestKingMoves(t *testing.T) {
 func TestEvaluateBoard(t *testing.T) {
 	board := getBoard()
 
-	score := evaluateBoard(white, &board)
+	score := evaluateCurrentBoard(white, &board)
 	target := 0
 	if score != target {
 		t.Errorf("Score is %d, but should be %d", score, target)
@@ -131,4 +133,34 @@ func TestMin(t *testing.T) {
 	if err == nil {
 		t.Errorf("An empty slice should throw an error")
 	}
+}
+
+func TestGetMoves(t *testing.T) {
+	board := [boardSize][boardSize]string{}
+
+	board[3][3] = "BM"
+	board[4][4] = "WM"
+
+	move := getMoves(black, down, &board)
+	target := []Move{{Position{3, 3}, Position{5, 5}}}
+
+	if !cmp.Equal(move, target) {
+		t.Error("move ==", move, ", but should be", target)
+	}
+
+}
+
+func TestChooseBestMove(t *testing.T) {
+	board := [boardSize][boardSize]string{}
+
+	board[3][3] = "BM"
+	board[4][4] = "WM"
+
+	move := chooseBestMove(black, down, &board, 5)
+	target := Move{Position{3, 3}, Position{5, 5}}
+
+	if move != target {
+		t.Error("move ==", move, ", but should be", target)
+	}
+
 }
