@@ -279,26 +279,35 @@ func getKingMoves(color playerColor, pos Position, board *[boardSize][boardSize]
 	return moves, jumps
 }
 
-func countTokens(board *[boardSize][boardSize]string) (counter map[playerColor]int) {
-	counter = make(map[playerColor]int)
+func countTokens(board *[boardSize][boardSize]string) (nWhite, nBlack int) {
 	for _, row := range board {
 		for _, elem := range row {
 			if strings.HasPrefix(elem, "B") {
-				counter[black]++
+				nBlack++
 			} else if strings.HasPrefix(elem, "W") {
-				counter[white]++
+				nWhite++
 			}
 		}
 	}
-	return counter
+	return nWhite, nBlack
 }
 
 func evaluateCurrentBoard(color playerColor, board *[boardSize][boardSize]string) int {
-	tokenCounter := countTokens(board)
-	enemyColor := oppositeColor(color)
+	nWhite, nBlack := countTokens(board)
 
-	enemyCount := tokenCounter[enemyColor]
-	selfCount := tokenCounter[color]
+	var enemyCount, selfCount int
+	switch color {
+	case white:
+		{
+			enemyCount = nBlack
+			selfCount = nWhite
+		}
+	case black:
+		{
+			enemyCount = nWhite
+			selfCount = nBlack
+		}
+	}
 
 	if enemyCount == 0 {
 		return 10
@@ -372,7 +381,6 @@ func evaluateBoard(color playerColor, dir direction, board *[boardSize][boardSiz
 		newScore := evaluateBoard(oppositeColor(color), oppositeDirection(dir), &newBoard, depthRemaining-1)
 		scores = append(scores, newScore)
 	}
-	log.Println("Choosing between moves:", moves, "with scores", scores)
 	score, err := min(scores)
 	if err != nil {
 		panic("oops")
@@ -402,7 +410,6 @@ func chooseBestMove(color playerColor, dir direction, board *[boardSize][boardSi
 		}
 
 	}
-	log.Println("Best move is", bestMove)
 	return bestMove
 }
 
@@ -419,7 +426,6 @@ func main() {
 	maxDepth := 7
 	color := white
 	dir := up
-	var counter map[playerColor]int
 
 	for true {
 		move := chooseBestMove(color, dir, &board, maxDepth)
@@ -430,8 +436,8 @@ func main() {
 		color = oppositeColor(color)
 		dir = oppositeDirection(dir)
 
-		counter = countTokens(&board)
-		if counter[white] == 0 || counter[black] == 0 {
+		nWhite, nBlack := countTokens(&board)
+		if nWhite == 0 || nBlack == 0 {
 			break
 		}
 	}

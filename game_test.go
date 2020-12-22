@@ -166,5 +166,10 @@ func TestChooseBestMove(t *testing.T) {
 }
 
 func BenchmarkChooseBestMove(b *testing.B) {
+	board := getBoard()
+
+	for i := 0; i < b.N; i++ {
+		chooseBestMove(white, up, &board, 7)
+	}
 
 }
