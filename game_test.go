@@ -115,3 +115,20 @@ func TestMakeMove(t *testing.T) {
 	}
 
 }
+
+func TestMin(t *testing.T) {
+	numbers := []int{3, 4, 1, -123, 44}
+
+	m, _ := min(numbers)
+	target := -123
+
+	if m != target {
+		t.Errorf("m == %d, should be %d", m, target)
+	}
+
+	numbers = []int{}
+	_, err := min(numbers)
+	if err == nil {
+		t.Errorf("An empty slice should throw an error")
+	}
+}

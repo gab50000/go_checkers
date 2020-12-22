@@ -311,6 +311,20 @@ func makeMove(move Move, board [boardSize][boardSize]string) [boardSize][boardSi
 	return board
 }
 
+func min(numbers []int) (m int, e error) {
+	if len(numbers) == 0 {
+		return 0, errors.New("slice is empty")
+	}
+	for i, num := range numbers {
+		if i == 0 {
+			m = num
+		} else if num < m {
+			m = num
+		}
+	}
+	return m, nil
+}
+
 func main() {
 	board := getBoard()
 	printBoard(&board)
