@@ -315,15 +315,24 @@ func abs(x int) int {
 	return x
 }
 
-func makeMove(move Move, board [boardSize][boardSize]string) [boardSize][boardSize]string {
-	token := board[move.From.I][move.From.J]
-	board[move.To.I][move.To.J] = token
-	board[move.From.I][move.From.J] = ""
-	dI := move.From.I - move.To.I
+func toKing(token string) string {
+	return token[:1] + "K"
+}
+
+func makeMove(move Move, dir direction, board [boardSize][boardSize]string) [boardSize][boardSize]string {
+	destI, destJ := move.To.I, move.To.J
+	origI, origJ := move.From.I, move.From.J
+	token := board[origI][origJ]
+	if (destI == 0 && dir == up) || (destI == boardSize-1 && dir == down) {
+		token = toKing(token)
+	}
+	board[destI][destJ] = token
+	board[origI][origJ] = ""
+	dI := origI - destI
 	dI /= abs(dI)
-	dJ := move.From.J - move.To.J
+	dJ := origJ - destJ
 	dJ /= abs(dJ)
-	board[move.To.I+dI][move.To.J+dJ] = ""
+	board[destI+dI][destJ+dJ] = ""
 	return board
 }
 
@@ -354,11 +363,11 @@ func evaluateBoard(color playerColor, dir direction, board *[boardSize][boardSiz
 	}
 
 	for _, move := range moves {
-		newBoard := makeMove(move, *board)
+		newBoard := makeMove(move, dir, *board)
 		newScore := evaluateBoard(oppositeColor(color), oppositeDirection(dir), &newBoard, depthRemaining-1)
 		scores = append(scores, newScore)
 	}
-	log.Println("Choosing between moves:", moves)
+	log.Println("Choosing between moves:", moves, "with scores", scores)
 	score, err := min(scores)
 	if err != nil {
 		panic("oops")
@@ -373,7 +382,7 @@ func chooseBestMove(color playerColor, dir direction, board *[boardSize][boardSi
 	moves := getMoves(color, dir, board)
 
 	for i, move := range moves {
-		newBoard := makeMove(move, *board)
+		newBoard := makeMove(move, dir, *board)
 		newScore := -evaluateBoard(oppositeColor(color), oppositeDirection(dir), &newBoard, maxDepth)
 
 		if i == 0 {
@@ -388,13 +397,13 @@ func chooseBestMove(color playerColor, dir direction, board *[boardSize][boardSi
 		}
 
 	}
+	log.Println("Best move is", bestMove)
 	return bestMove
 }
 
 func clear() {
 	cmd := exec.Command("clear")
 	cmd.Stdout = os.Stdout
-	cmd.Run()
 }
 
 func main() {
@@ -402,13 +411,14 @@ func main() {
 	board := getBoard()
 	printBoard(&board)
 
-	maxDepth := 7
+	maxDepth := 5
 	color := white
 	dir := up
 
 	for true {
 		move := chooseBestMove(color, dir, &board, maxDepth)
-		board = makeMove(move, board)
+		log.Println("Make move", move)
+		board = makeMove(move, dir, board)
 		clear()
 		printBoard(&board)
 		color = oppositeColor(color)

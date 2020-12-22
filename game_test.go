@@ -102,7 +102,7 @@ func TestMakeMove(t *testing.T) {
 
 	move := Move{Position{2, 2}, Position{7, 7}}
 
-	newBoard := makeMove(move, board)
+	newBoard := makeMove(move, up, board)
 
 	if newBoard[2][2] != "" {
 		t.Errorf("Origin contains %s, but should be empty", newBoard[2][2])
@@ -162,5 +162,9 @@ func TestChooseBestMove(t *testing.T) {
 	if move != target {
 		t.Error("move ==", move, ", but should be", target)
 	}
+
+}
+
+func BenchmarkChooseBestMove(b *testing.B) {
 
 }
