@@ -3,7 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -388,8 +391,27 @@ func chooseBestMove(color playerColor, dir direction, board *[boardSize][boardSi
 	return bestMove
 }
 
+func clear() {
+	cmd := exec.Command("clear")
+	cmd.Stdout = os.Stdout
+	cmd.Run()
+}
+
 func main() {
+	log.SetOutput(ioutil.Discard)
 	board := getBoard()
 	printBoard(&board)
-	fmt.Println(getPositions(white, man, &board))
+
+	maxDepth := 7
+	color := white
+	dir := up
+
+	for true {
+		move := chooseBestMove(color, dir, &board, maxDepth)
+		board = makeMove(move, board)
+		clear()
+		printBoard(&board)
+		color = oppositeColor(color)
+		dir = oppositeDirection(dir)
+	}
 }
