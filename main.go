@@ -501,10 +501,18 @@ func parseMove(playerInput string) (Move, error) {
 	return Move{Position{fromI, fromJ}, Position{toI, toJ}}, nil
 }
 
+func contains(moves []Move, mv Move) bool {
+	for _, move := range moves {
+		if move == mv {
+			return true
+		}
+	}
+	return false
+}
+
 func gameAgainstAI(maxDepth int) {
 	reader := bufio.NewReader(os.Stdin)
 
-	log.SetOutput(ioutil.Discard)
 	board := getBoard()
 	printBoard(&board)
 
@@ -514,14 +522,30 @@ func gameAgainstAI(maxDepth int) {
 	for true {
 		playerInput, err := reader.ReadString('\n')
 		if err != nil {
-			log.Fatal(err)
+			log.Println("No valid move!")
+			continue
 		}
 		move, err := parseMove(playerInput)
-		log.Println("Make move", move)
+		if err != nil {
+			log.Println("No valid move!")
+			continue
+		}
+
+		possibleMoves := getMoves(color, dir, &board)
+		if !contains(possibleMoves, move) {
+			log.Println("Invalid move!")
+			continue
+		}
+		board = makeMove(move, dir, board)
+
+		// Computer move
+		color = oppositeColor(color)
+		dir = oppositeDirection(dir)
+
+		move = chooseBestMove(color, dir, &board, maxDepth)
 		board = makeMove(move, dir, board)
 		clear()
 		printBoard(&board)
-		time.Sleep(300 * time.Millisecond)
 		color = oppositeColor(color)
 		dir = oppositeDirection(dir)
 
