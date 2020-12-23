@@ -511,6 +511,7 @@ func contains(moves []Move, mv Move) bool {
 }
 
 func gameAgainstAI(maxDepth int) {
+	log.SetOutput(ioutil.Discard)
 	reader := bufio.NewReader(os.Stdin)
 
 	board := getBoard()
