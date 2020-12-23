@@ -89,7 +89,11 @@ func printBoard(board *[boardSize][boardSize]string) {
 	fmt.Println(letters)
 }
 
-func getPositions(color playerColor, tok tokenType, board *[boardSize][boardSize]string) []Position {
+func getPositions(
+	color playerColor,
+	tok tokenType,
+	board *[boardSize][boardSize]string,
+) []Position {
 	positions := make([]Position, 0, 12)
 	var prefix string
 	if color == black {
@@ -115,7 +119,11 @@ func getPositions(color playerColor, tok tokenType, board *[boardSize][boardSize
 	return positions
 }
 
-func getMoves(color playerColor, dir direction, board *[boardSize][boardSize]string) (moves []Move) {
+func getMoves(
+	color playerColor,
+	dir direction,
+	board *[boardSize][boardSize]string,
+) (moves []Move) {
 
 	manPositions := getPositions(color, man, board)
 	kingPositions := getPositions(color, king, board)
@@ -145,7 +153,12 @@ func getMoves(color playerColor, dir direction, board *[boardSize][boardSize]str
 	return moves
 }
 
-func getManMoves(color playerColor, dir direction, pos Position, board *[boardSize][boardSize]string) []Move {
+func getManMoves(
+	color playerColor,
+	dir direction,
+	pos Position,
+	board *[boardSize][boardSize]string,
+) []Move {
 	moves := make([]Move, 0, 2)
 	i, j := pos.I, pos.J
 	var ii int
@@ -257,7 +270,11 @@ func getManJumps(
 	return moves
 }
 
-func getKingMoves(color playerColor, pos Position, board *[boardSize][boardSize]string) (moves []Move, jumps []Move) {
+func getKingMoves(
+	color playerColor,
+	pos Position,
+	board *[boardSize][boardSize]string,
+) (moves []Move, jumps []Move) {
 	i, j := pos.I, pos.J
 	enemyColor := oppositeColor(color)
 	enemyPrefix := colorPrefix(enemyColor)
@@ -371,7 +388,14 @@ func min(numbers []float64) (m float64, e error) {
 	return m, nil
 }
 
-func evaluateBoard(color playerColor, dir direction, board *[boardSize][boardSize]string, depthRemaining int, bestScoreBlack float64, bestScoreWhite float64) (score float64) {
+func evaluateBoard(
+	color playerColor,
+	dir direction,
+	board *[boardSize][boardSize]string,
+	depthRemaining int,
+	bestScoreBlack float64,
+	bestScoreWhite float64,
+) (score float64) {
 
 	var bestOpponentScore *float64
 	var bestSelfScore *float64
@@ -398,7 +422,14 @@ func evaluateBoard(color playerColor, dir direction, board *[boardSize][boardSiz
 
 	for _, move := range moves {
 		newBoard := makeMove(move, dir, *board)
-		newOppScore := evaluateBoard(oppositeColor(color), oppositeDirection(dir), &newBoard, depthRemaining-1, bestScoreBlack, bestScoreWhite)
+		newOppScore := evaluateBoard(
+			oppositeColor(color),
+			oppositeDirection(dir),
+			&newBoard,
+			depthRemaining-1,
+			bestScoreBlack,
+			bestScoreWhite,
+		)
 		newScore := -newOppScore
 
 		if newScore > *bestSelfScore {
@@ -418,7 +449,12 @@ func evaluateBoard(color playerColor, dir direction, board *[boardSize][boardSiz
 	return -score
 }
 
-func chooseBestMove(color playerColor, dir direction, board *[boardSize][boardSize]string, maxDepth int) Move {
+func chooseBestMove(
+	color playerColor,
+	dir direction,
+	board *[boardSize][boardSize]string,
+	maxDepth int,
+) Move {
 	bestScoreBlack, bestScoreWhite := math.Inf(-1), math.Inf(-1)
 	var bestMove Move
 	moves := getMoves(color, dir, board)
@@ -435,7 +471,14 @@ func chooseBestMove(color playerColor, dir direction, board *[boardSize][boardSi
 		var newScore float64
 		log.Print("Evaluate move", move, ":")
 		newBoard := makeMove(move, dir, *board)
-		newScore = -evaluateBoard(oppositeColor(color), oppositeDirection(dir), &newBoard, maxDepth, bestScoreBlack, bestScoreWhite)
+		newScore = -evaluateBoard(
+			oppositeColor(color),
+			oppositeDirection(dir),
+			&newBoard,
+			maxDepth,
+			bestScoreBlack,
+			bestScoreWhite,
+		)
 
 		if newScore > *bestSelfScore {
 			bestMove = move
