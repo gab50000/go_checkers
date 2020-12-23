@@ -561,6 +561,8 @@ func main() {
 	var searchDepth int
 
 	app := &cli.App{
+		Name:  "Checkers!",
+		Usage: "Play checkers on the command line",
 		Commands: []*cli.Command{
 			{
 				Name:  "auto",
