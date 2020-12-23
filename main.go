@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -8,8 +9,12 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/urfave/cli/v2"
 )
 
 type playerColor int
@@ -448,12 +453,11 @@ func clear() {
 	cmd.Run()
 }
 
-func main() {
+func aiVsAi(maxDepth int) {
 	log.SetOutput(ioutil.Discard)
 	board := getBoard()
 	printBoard(&board)
 
-	maxDepth := 7
 	color := white
 	dir := up
 
@@ -471,5 +475,106 @@ func main() {
 		if nWhite == 0 || nBlack == 0 {
 			break
 		}
+	}
+}
+
+func parseMove(playerInput string) (Move, error) {
+	regex, _ := regexp.Compile(`(?P<letter>[a-hA-H])(?P<number>[1-8])`)
+	match := regex.FindAllStringSubmatch(playerInput, 2)
+	if len(match) != 2 {
+		return Move{}, errors.New("could not parse input")
+	}
+
+	fromI, err := strconv.Atoi(match[0][2])
+	if err != nil {
+		return Move{}, err
+	}
+	fromI--
+	fromJ := int(match[0][1][0]) - 97
+	toI, err := strconv.Atoi(match[1][2])
+	if err != nil {
+		return Move{}, err
+	}
+	toI--
+	toJ := int(match[1][1][0]) - 97
+
+	return Move{Position{fromI, fromJ}, Position{toI, toJ}}, nil
+}
+
+func gameAgainstAI(maxDepth int) {
+	reader := bufio.NewReader(os.Stdin)
+
+	log.SetOutput(ioutil.Discard)
+	board := getBoard()
+	printBoard(&board)
+
+	color := white
+	dir := up
+
+	for true {
+		playerInput, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
+		move, err := parseMove(playerInput)
+		log.Println("Make move", move)
+		board = makeMove(move, dir, board)
+		clear()
+		printBoard(&board)
+		time.Sleep(300 * time.Millisecond)
+		color = oppositeColor(color)
+		dir = oppositeDirection(dir)
+
+		nWhite, nBlack := countTokens(&board)
+		if nWhite == 0 || nBlack == 0 {
+			break
+		}
+	}
+}
+
+func main() {
+
+	var searchDepth int
+
+	app := &cli.App{
+		Commands: []*cli.Command{
+			{
+				Name:  "auto",
+				Usage: "AI vs AI!",
+				Flags: []cli.Flag{
+					&cli.IntFlag{
+						Name:        "depth",
+						Value:       5,
+						Usage:       "Tree search depth",
+						Destination: &searchDepth,
+					},
+				},
+				Action: func(c *cli.Context) error {
+					aiVsAi(searchDepth)
+					return nil
+				},
+			},
+			{
+				Name:  "play",
+				Usage: "Play checkers!",
+				Flags: []cli.Flag{
+					&cli.IntFlag{
+						Name:        "depth",
+						Value:       5,
+						Usage:       "Tree search depth",
+						Destination: &searchDepth,
+					},
+				},
+				Action: func(c *cli.Context) error {
+					gameAgainstAI(searchDepth)
+					return nil
+				},
+			},
+		},
+	}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
 	}
 }

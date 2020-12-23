@@ -165,6 +165,29 @@ func TestChooseBestMove(t *testing.T) {
 
 }
 
+func TestParseMove(t *testing.T) {
+	inputs := []string{
+		"a1b2",
+		"c3  d4",
+		"a5    b6",
+	}
+	targets := []Move{
+		{Position{0, 0}, Position{1, 1}},
+		{Position{2, 2}, Position{3, 3}},
+		{Position{4, 0}, Position{5, 1}},
+	}
+
+	for i, inp := range inputs {
+		trg := targets[i]
+
+		result, _ := parseMove(inp)
+
+		if result != trg {
+			t.Error("Result is", result, "but should be", trg)
+		}
+	}
+}
+
 func BenchmarkChooseBestMove(b *testing.B) {
 	board := getBoard()
 
