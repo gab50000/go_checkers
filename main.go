@@ -554,10 +554,17 @@ func contains(moves []Move, mv Move) bool {
 }
 
 func gameAgainstAI(maxDepth int) {
-	log.SetOutput(ioutil.Discard)
+	f, err := os.OpenFile("./log.out", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	defer f.Close()
+
+	log.SetOutput(f)
 	reader := bufio.NewReader(os.Stdin)
 
 	board := getBoard()
+	clear()
 	printBoard(&board)
 
 	color := white
@@ -566,7 +573,7 @@ func gameAgainstAI(maxDepth int) {
 	for true {
 		playerInput, err := reader.ReadString('\n')
 		if err != nil {
-			log.Println("No valid move!")
+			fmt.Println("No valid move!")
 			continue
 		}
 		move, err := parseMove(playerInput)
@@ -577,16 +584,25 @@ func gameAgainstAI(maxDepth int) {
 
 		possibleMoves := getMoves(color, dir, &board)
 		if !contains(possibleMoves, move) {
-			log.Println("Invalid move!")
+			fmt.Println("Invalid move! Choose between: ", possibleMoves)
 			continue
 		}
+		log.Println("Making move", move)
 		board = makeMove(move, dir, board)
+		clear()
+		printBoard(&board)
 
 		// Computer move
 		color = oppositeColor(color)
 		dir = oppositeDirection(dir)
 
+		startTime := time.Now()
 		move = chooseBestMove(color, dir, &board, maxDepth)
+		duration := int(time.Now().Sub(startTime).Milliseconds())
+		delay := 300 // in milliseconds
+		slp := math.Max(float64(delay-duration), 0)
+		log.Println("Sleep", slp, "duration:", duration)
+		time.Sleep(time.Duration(slp) * time.Millisecond)
 		board = makeMove(move, dir, board)
 		clear()
 		printBoard(&board)
