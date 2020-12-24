@@ -395,6 +395,7 @@ func evaluateBoard(
 	depthRemaining int,
 	bestScoreBlack float64,
 	bestScoreWhite float64,
+	alphaBetaPruning bool,
 ) (score float64) {
 
 	var bestOpponentScore *float64
@@ -429,6 +430,7 @@ func evaluateBoard(
 			depthRemaining-1,
 			bestScoreBlack,
 			bestScoreWhite,
+			alphaBetaPruning,
 		)
 		newScore := -newOppScore
 
@@ -454,6 +456,7 @@ func chooseBestMove(
 	dir direction,
 	board *[boardSize][boardSize]string,
 	maxDepth int,
+	alphaBetaPruning bool,
 ) Move {
 	bestScoreBlack, bestScoreWhite := math.Inf(-1), math.Inf(-1)
 	var bestMove Move
@@ -478,6 +481,7 @@ func chooseBestMove(
 			maxDepth,
 			bestScoreBlack,
 			bestScoreWhite,
+			alphaBetaPruning,
 		)
 
 		if newScore > *bestSelfScore {
@@ -496,7 +500,7 @@ func clear() {
 	cmd.Run()
 }
 
-func aiVsAi(maxDepth int) {
+func aiVsAi(maxDepth int, alphaBetaPruning bool) {
 	log.SetOutput(ioutil.Discard)
 	board := getBoard()
 	printBoard(&board)
@@ -505,7 +509,7 @@ func aiVsAi(maxDepth int) {
 	dir := up
 
 	for true {
-		move := chooseBestMove(color, dir, &board, maxDepth)
+		move := chooseBestMove(color, dir, &board, maxDepth, alphaBetaPruning)
 		log.Println("Make move", move)
 		board = makeMove(move, dir, board)
 		clear()
@@ -553,7 +557,7 @@ func contains(moves []Move, mv Move) bool {
 	return false
 }
 
-func gameAgainstAI(maxDepth int) {
+func gameAgainstAI(maxDepth int, alphaBetaPruning bool) {
 	f, err := os.OpenFile("./log.out", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
@@ -597,7 +601,7 @@ func gameAgainstAI(maxDepth int) {
 		dir = oppositeDirection(dir)
 
 		startTime := time.Now()
-		move = chooseBestMove(color, dir, &board, maxDepth)
+		move = chooseBestMove(color, dir, &board, maxDepth, alphaBetaPruning)
 		duration := int(time.Now().Sub(startTime).Milliseconds())
 		delay := 300 // in milliseconds
 		slp := math.Max(float64(delay-duration), 0)
@@ -619,6 +623,7 @@ func gameAgainstAI(maxDepth int) {
 func main() {
 
 	var searchDepth int
+	var alphaBetaPruning bool
 
 	app := &cli.App{
 		Name:  "Checkers!",
@@ -634,9 +639,15 @@ func main() {
 						Usage:       "Tree search depth",
 						Destination: &searchDepth,
 					},
+					&cli.BoolFlag{
+						Name:        "alpha_beta_pruning",
+						Aliases:     []string{"a"},
+						Usage:       "Use alpha-beta pruning",
+						Destination: &alphaBetaPruning,
+					},
 				},
 				Action: func(c *cli.Context) error {
-					aiVsAi(searchDepth)
+					aiVsAi(searchDepth, alphaBetaPruning)
 					return nil
 				},
 			},
@@ -650,9 +661,15 @@ func main() {
 						Usage:       "Tree search depth",
 						Destination: &searchDepth,
 					},
+					&cli.BoolFlag{
+						Name:        "alpha_beta_pruning",
+						Aliases:     []string{"a"},
+						Usage:       "Use alpha-beta pruning",
+						Destination: &alphaBetaPruning,
+					},
 				},
 				Action: func(c *cli.Context) error {
-					gameAgainstAI(searchDepth)
+					gameAgainstAI(searchDepth, alphaBetaPruning)
 					return nil
 				},
 			},

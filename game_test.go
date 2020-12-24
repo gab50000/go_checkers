@@ -156,7 +156,7 @@ func TestChooseBestMove(t *testing.T) {
 	board[3][3] = "BM"
 	board[4][4] = "WM"
 
-	move := chooseBestMove(black, down, &board, 5)
+	move := chooseBestMove(black, down, &board, 5, true)
 	target := Move{Position{3, 3}, Position{5, 5}}
 
 	if move != target {
@@ -188,11 +188,40 @@ func TestParseMove(t *testing.T) {
 	}
 }
 
+func TestTreeSearchVsAlphaBetaPruning(t *testing.T) {
+	searchDepth := 7
+	numberOfMoves := 10
+
+	play := func(alphaBetaPruning bool) [8][8]string {
+		board := getBoard()
+		color := white
+		dir := up
+
+		for i := 0; i < numberOfMoves; i++ {
+			move := chooseBestMove(color, dir, &board, searchDepth, alphaBetaPruning)
+			board = makeMove(move, dir, board)
+			color = oppositeColor(color)
+			dir = oppositeDirection(dir)
+		}
+		return board
+	}
+
+	board1 := play(true)
+	board2 := play(false)
+
+	printBoard(&board1)
+	printBoard(&board2)
+
+	if board1 != board2 {
+		t.Error("Alpha-Beta pruning yields different results!")
+	}
+}
+
 func BenchmarkChooseBestMove(b *testing.B) {
 	board := getBoard()
 
 	for i := 0; i < b.N; i++ {
-		chooseBestMove(white, up, &board, 7)
+		chooseBestMove(white, up, &board, 7, true)
 	}
 
 }
