@@ -54,6 +54,10 @@ type Move struct {
 	To   Position
 }
 
+func (m Move) String() string {
+	return fmt.Sprintf("Move{%v, %v}", m.From, m.To)
+}
+
 // GameState holds the board state
 type GameState struct {
 	board            [8][8]string
@@ -63,10 +67,6 @@ type GameState struct {
 
 func (gs GameState) String() string {
 	return boardToString(&gs.board)
-}
-
-func (m Move) String() string {
-	return fmt.Sprintf("Move{%v, %v}", m.From, m.To)
 }
 
 func createInitialState() GameState {
