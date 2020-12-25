@@ -44,10 +44,29 @@ type Position struct {
 	J int
 }
 
+func (p Position) String() string {
+	return fmt.Sprintf("Position{%v, %v}", p.I, p.J)
+}
+
 // Move holding start and end position
 type Move struct {
 	From Position
 	To   Position
+}
+
+// GameState holds the board state
+type GameState struct {
+	board            [8][8]string
+	currentPlayer    playerColor
+	currentDirection direction
+}
+
+func (gs GameState) String() string {
+	return boardToString(&gs.board)
+}
+
+func (m Move) String() string {
+	return fmt.Sprintf("Move{%v, %v}", m.From, m.To)
 }
 
 func getBoard() [boardSize][boardSize]string {
@@ -64,29 +83,35 @@ func getBoard() [boardSize][boardSize]string {
 	return board
 }
 
-func printBoard(board *[boardSize][boardSize]string) {
+func boardToString(board *[boardSize][boardSize]string) string {
 	const letters = "   A   B   C   D   E   F   G   H"
-	fmt.Println(letters)
+	var s string
+	s += fmt.Sprintf("%v\n", letters)
 	for i, row := range board {
-		fmt.Print(i + 1)
+		s += fmt.Sprint(i + 1)
 		for _, elem := range row {
-			fmt.Print("|")
+			s += fmt.Sprint("|")
 			switch elem {
 			case "":
-				fmt.Print("   ")
+				s += fmt.Sprint("   ")
 			case "BM":
-				fmt.Print(" o ")
+				s += fmt.Sprint(" o ")
 			case "BK":
-				fmt.Print(" ♔ ")
+				s += fmt.Sprint(" ♔ ")
 			case "WM":
-				fmt.Print(" ● ")
+				s += fmt.Sprint(" ● ")
 			case "WK":
-				fmt.Print(" ♚ ")
+				s += fmt.Sprint(" ♚ ")
 			}
 		}
-		fmt.Printf("|%d\n", i+1)
+		s += fmt.Sprintf("|%d\n", i+1)
 	}
-	fmt.Println(letters)
+	s += fmt.Sprintf("%v\n", letters)
+	return s
+}
+
+func printBoard(board *[boardSize][boardSize]string) {
+	fmt.Print(boardToString(board))
 }
 
 func getPositions(
@@ -472,7 +497,7 @@ func chooseBestMove(
 
 	for _, move := range moves {
 		var newScore float64
-		log.Print("Evaluate move", move, ":")
+		log.Printf("Evaluate move %v", move)
 		newBoard := makeMove(move, dir, *board)
 		newScore = -evaluateBoard(
 			oppositeColor(color),
