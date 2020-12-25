@@ -75,7 +75,6 @@ func createInitialState() GameState {
 		currentPlayer:    white,
 		currentDirection: up,
 	}
-
 }
 
 func getBoard() [boardSize][boardSize]string {
@@ -192,7 +191,7 @@ func getManMoves(gs *GameState, pos Position) []Move {
 	default:
 		return []Move{}
 	}
-	for dj := -1; dj <= 1; dj += 2 {
+	for _, dj := range []int{-1, 1} {
 		jj := j + dj
 		if jj < 0 || jj > 7 {
 			continue
@@ -277,7 +276,7 @@ func getManJumps(
 		return []Move{}
 	}
 
-	for dj := -1; dj <= 1; dj += 2 {
+	for dj := range []int{-1, 1} {
 		jEnemy = j + dj
 		if jEnemy == 0 || jEnemy == 7 || !withinBounds(jEnemy) {
 			continue
@@ -301,8 +300,8 @@ func getKingMoves(gs *GameState, pos Position) (moves []Move, jumps []Move) {
 	enemyColor := oppositeColor(color)
 	enemyPrefix := colorPrefix(enemyColor)
 
-	for di := -1; di < 2; di += 2 {
-		for dj := -1; dj < 2; dj += 2 {
+	for _, di := range []int{-1, 1} {
+		for _, dj := range []int{-1, 1} {
 			ii, jj := i+di, j+dj
 			for withinBounds(ii, jj) && board[ii][jj] == "" {
 				moves = append(moves, Move{Position{i, j}, Position{ii, jj}})
