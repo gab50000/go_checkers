@@ -69,6 +69,15 @@ func (m Move) String() string {
 	return fmt.Sprintf("Move{%v, %v}", m.From, m.To)
 }
 
+func createInitialState() GameState {
+	return GameState{
+		board:            getBoard(),
+		currentPlayer:    white,
+		currentDirection: up,
+	}
+
+}
+
 func getBoard() [boardSize][boardSize]string {
 	board := [boardSize][boardSize]string{}
 	for i := 0; i < 4; i++ {
@@ -114,14 +123,10 @@ func printBoard(board *[boardSize][boardSize]string) {
 	fmt.Print(boardToString(board))
 }
 
-func getPositions(
-	color playerColor,
-	tok tokenType,
-	board *[boardSize][boardSize]string,
-) []Position {
+func getPositions(gs *GameState, tok tokenType) []Position {
 	positions := make([]Position, 0, 12)
 	var prefix string
-	if color == black {
+	if gs.currentPlayer == black {
 		prefix = "B"
 	} else {
 		prefix = "W"
@@ -134,7 +139,7 @@ func getPositions(
 	}
 	target := prefix + postfix
 
-	for i, row := range board {
+	for i, row := range gs.board {
 		for j, elem := range row {
 			if elem == target {
 				positions = append(positions, Position{i, j})
@@ -144,21 +149,17 @@ func getPositions(
 	return positions
 }
 
-func getMoves(
-	color playerColor,
-	dir direction,
-	board *[boardSize][boardSize]string,
-) (moves []Move) {
+func getMoves(gs *GameState) (moves []Move) {
 
-	manPositions := getPositions(color, man, board)
-	kingPositions := getPositions(color, king, board)
+	manPositions := getPositions(gs, man)
+	kingPositions := getPositions(gs, king)
 
 	for _, pos := range manPositions {
-		moves = append(moves, getManJumps(color, dir, pos, board)...)
+		moves = append(moves, getManJumps(gs, pos)...)
 	}
 
 	for _, pos := range kingPositions {
-		_, kingJumps := getKingMoves(color, pos, board)
+		_, kingJumps := getKingMoves(gs, pos)
 		moves = append(moves, kingJumps...)
 	}
 
@@ -167,23 +168,19 @@ func getMoves(
 	}
 
 	for _, pos := range manPositions {
-		moves = append(moves, getManMoves(color, dir, pos, board)...)
+		moves = append(moves, getManMoves(gs, pos)...)
 	}
 
 	for _, pos := range kingPositions {
-		kingMoves, _ := getKingMoves(color, pos, board)
+		kingMoves, _ := getKingMoves(gs, pos)
 		moves = append(moves, kingMoves...)
 
 	}
 	return moves
 }
 
-func getManMoves(
-	color playerColor,
-	dir direction,
-	pos Position,
-	board *[boardSize][boardSize]string,
-) []Move {
+func getManMoves(gs *GameState, pos Position) []Move {
+	dir := gs.currentDirection
 	moves := make([]Move, 0, 2)
 	i, j := pos.I, pos.J
 	var ii int
@@ -201,7 +198,7 @@ func getManMoves(
 			continue
 		}
 
-		if board[ii][jj] == "" {
+		if gs.board[ii][jj] == "" {
 			moves = append(moves, Move{pos, Position{ii, jj}})
 		}
 	}
@@ -251,10 +248,12 @@ func withinBounds(indices ...int) bool {
 }
 
 func getManJumps(
-	color playerColor,
-	dir direction,
+	gs *GameState,
 	pos Position,
-	board *[boardSize][boardSize]string) []Move {
+) []Move {
+	board := gs.board
+	color := gs.currentPlayer
+	dir := gs.currentDirection
 
 	moves := make([]Move, 0)
 	i, j := pos.I, pos.J
@@ -295,12 +294,10 @@ func getManJumps(
 	return moves
 }
 
-func getKingMoves(
-	color playerColor,
-	pos Position,
-	board *[boardSize][boardSize]string,
-) (moves []Move, jumps []Move) {
+func getKingMoves(gs *GameState, pos Position) (moves []Move, jumps []Move) {
 	i, j := pos.I, pos.J
+	color := gs.currentPlayer
+	board := gs.board
 	enemyColor := oppositeColor(color)
 	enemyPrefix := colorPrefix(enemyColor)
 
@@ -341,11 +338,11 @@ func countTokens(board *[boardSize][boardSize]string) (nWhite, nBlack int) {
 	return nWhite, nBlack
 }
 
-func evaluateCurrentBoard(color playerColor, board *[boardSize][boardSize]string) float64 {
-	nWhite, nBlack := countTokens(board)
+func evaluateCurrentBoard(gs *GameState) float64 {
+	nWhite, nBlack := countTokens(&gs.board)
 
 	var enemyCount, selfCount int
-	switch color {
+	switch gs.currentPlayer {
 	case white:
 		{
 			enemyCount = nBlack
@@ -377,11 +374,18 @@ func toKing(token string) string {
 	return token[:1] + "K"
 }
 
-func makeMove(move Move, dir direction, board [boardSize][boardSize]string) [boardSize][boardSize]string {
+func makeMove(gs GameState, move Move) GameState {
 	noMove := Move{Position{0, 0}, Position{0, 0}}
 	if move == noMove {
-		return board
+		return GameState{
+			board:            gs.board,
+			currentPlayer:    oppositeColor(gs.currentPlayer),
+			currentDirection: oppositeDirection(gs.currentDirection),
+		}
 	}
+
+	board := gs.board
+	dir := gs.currentDirection
 
 	destI, destJ := move.To.I, move.To.J
 	origI, origJ := move.From.I, move.From.J
@@ -396,7 +400,11 @@ func makeMove(move Move, dir direction, board [boardSize][boardSize]string) [boa
 	dJ := origJ - destJ
 	dJ /= abs(dJ)
 	board[destI+dI][destJ+dJ] = ""
-	return board
+	return GameState{
+		board:            board,
+		currentPlayer:    oppositeColor(gs.currentPlayer),
+		currentDirection: oppositeDirection(gs.currentDirection),
+	}
 }
 
 func min(numbers []float64) (m float64, e error) {
@@ -414,9 +422,7 @@ func min(numbers []float64) (m float64, e error) {
 }
 
 func evaluateBoard(
-	color playerColor,
-	dir direction,
-	board *[boardSize][boardSize]string,
+	gs *GameState,
 	depthRemaining int,
 	bestScoreBlack float64,
 	bestScoreWhite float64,
@@ -425,7 +431,7 @@ func evaluateBoard(
 
 	var bestOpponentScore *float64
 	var bestSelfScore *float64
-	switch color {
+	switch gs.currentPlayer {
 	case black:
 		bestOpponentScore = &bestScoreWhite
 		bestSelfScore = &bestScoreBlack
@@ -436,22 +442,20 @@ func evaluateBoard(
 	}
 
 	if depthRemaining == 0 {
-		return evaluateCurrentBoard(color, board)
+		return evaluateCurrentBoard(gs)
 	}
 	scores := make([]float64, 0)
 
-	moves := getMoves(color, dir, board)
+	moves := getMoves(gs)
 
 	if len(moves) == 0 {
-		return evaluateCurrentBoard(color, board)
+		return evaluateCurrentBoard(gs)
 	}
 
 	for _, move := range moves {
-		newBoard := makeMove(move, dir, *board)
+		newState := makeMove(*gs, move)
 		newOppScore := evaluateBoard(
-			oppositeColor(color),
-			oppositeDirection(dir),
-			&newBoard,
+			&newState,
 			depthRemaining-1,
 			bestScoreBlack,
 			bestScoreWhite,
@@ -477,18 +481,16 @@ func evaluateBoard(
 }
 
 func chooseBestMove(
-	color playerColor,
-	dir direction,
-	board *[boardSize][boardSize]string,
+	gs *GameState,
 	maxDepth int,
 	alphaBetaPruning bool,
 ) Move {
 	bestScoreBlack, bestScoreWhite := math.Inf(-1), math.Inf(-1)
 	var bestMove Move
-	moves := getMoves(color, dir, board)
+	moves := getMoves(gs)
 
 	var bestSelfScore *float64
-	switch color {
+	switch gs.currentPlayer {
 	case black:
 		bestSelfScore = &bestScoreBlack
 	case white:
@@ -498,11 +500,9 @@ func chooseBestMove(
 	for _, move := range moves {
 		var newScore float64
 		log.Printf("Evaluate move %v", move)
-		newBoard := makeMove(move, dir, *board)
+		newState := makeMove(*gs, move)
 		newScore = -evaluateBoard(
-			oppositeColor(color),
-			oppositeDirection(dir),
-			&newBoard,
+			&newState,
 			maxDepth,
 			bestScoreBlack,
 			bestScoreWhite,
@@ -527,23 +527,24 @@ func clear() {
 
 func aiVsAi(maxDepth int, alphaBetaPruning bool) {
 	log.SetOutput(ioutil.Discard)
-	board := getBoard()
-	printBoard(&board)
+	state := createInitialState()
+	clear()
+	fmt.Print(state)
 
 	color := white
 	dir := up
 
 	for true {
-		move := chooseBestMove(color, dir, &board, maxDepth, alphaBetaPruning)
+		move := chooseBestMove(&state, maxDepth, alphaBetaPruning)
 		log.Println("Make move", move)
-		board = makeMove(move, dir, board)
+		state = makeMove(state, move)
 		clear()
-		printBoard(&board)
+		fmt.Print(state)
 		time.Sleep(300 * time.Millisecond)
 		color = oppositeColor(color)
 		dir = oppositeDirection(dir)
 
-		nWhite, nBlack := countTokens(&board)
+		nWhite, nBlack := countTokens(&state.board)
 		if nWhite == 0 || nBlack == 0 {
 			break
 		}
@@ -592,12 +593,9 @@ func gameAgainstAI(maxDepth int, alphaBetaPruning bool) {
 	log.SetOutput(f)
 	reader := bufio.NewReader(os.Stdin)
 
-	board := getBoard()
+	state := createInitialState()
 	clear()
-	printBoard(&board)
-
-	color := white
-	dir := up
+	fmt.Print(state)
 
 	for true {
 		playerInput, err := reader.ReadString('\n')
@@ -611,34 +609,29 @@ func gameAgainstAI(maxDepth int, alphaBetaPruning bool) {
 			continue
 		}
 
-		possibleMoves := getMoves(color, dir, &board)
+		possibleMoves := getMoves(&state)
 		if !contains(possibleMoves, move) {
 			fmt.Println("Invalid move! Choose between: ", possibleMoves)
 			continue
 		}
 		log.Println("Making move", move)
-		board = makeMove(move, dir, board)
+		state = makeMove(state, move)
 		clear()
-		printBoard(&board)
+		fmt.Print(state)
 
 		// Computer move
-		color = oppositeColor(color)
-		dir = oppositeDirection(dir)
-
 		startTime := time.Now()
-		move = chooseBestMove(color, dir, &board, maxDepth, alphaBetaPruning)
+		move = chooseBestMove(&state, maxDepth, alphaBetaPruning)
 		duration := int(time.Now().Sub(startTime).Milliseconds())
 		delay := 300 // in milliseconds
 		slp := math.Max(float64(delay-duration), 0)
 		log.Println("Sleep", slp, "duration:", duration)
 		time.Sleep(time.Duration(slp) * time.Millisecond)
-		board = makeMove(move, dir, board)
+		state = makeMove(state, move)
 		clear()
-		printBoard(&board)
-		color = oppositeColor(color)
-		dir = oppositeDirection(dir)
+		fmt.Print(state)
 
-		nWhite, nBlack := countTokens(&board)
+		nWhite, nBlack := countTokens(&state.board)
 		if nWhite == 0 || nBlack == 0 {
 			break
 		}
