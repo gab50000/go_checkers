@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -9,8 +10,9 @@ import (
 func TestManMoves(t *testing.T) {
 	board := [8][8]string{}
 	board[3][3] = "BM"
+	gs := GameState{board, black, down}
 
-	moves := getMoves(black, down, &board)
+	moves := getMoves(&gs)
 
 	if len(moves) != 2 {
 		t.Errorf("len(moves) is %d, should be 2", len(moves))
@@ -18,14 +20,15 @@ func TestManMoves(t *testing.T) {
 
 	board = [8][8]string{}
 	board[3][0] = "BM"
+	gs = GameState{board, black, down}
 
-	moves = getMoves(black, down, &board)
+	moves = getMoves(&gs)
 	if len(moves) != 1 {
 		t.Errorf("len(moves) is %d, should be 1", len(moves))
 	}
 
-	board = getBoard()
-	moves = getMoves(white, up, &board)
+	gs = createInitialState()
+	moves = getMoves(&gs)
 
 	if len(moves) != 7 {
 		t.Errorf("len(moves) is %d, should be 7", len(moves))
@@ -37,7 +40,11 @@ func TestManJumps(t *testing.T) {
 	board[3][3] = "BM"
 	board[4][4] = "WM"
 
-	jumps := getManJumps(white, up, Position{4, 4}, &board)
+	gs := GameState{board, white, up}
+	fmt.Println(gs)
+
+	jumps := getManJumps(&gs, Position{4, 4})
+	fmt.Println(jumps)
 
 	if len(jumps) != 1 {
 		t.Errorf("length(jumps) == %d, should be 1", len(jumps))
@@ -54,7 +61,9 @@ func TestManJumps(t *testing.T) {
 	board[0][0] = "BM"
 	board[1][1] = "WM"
 
-	jumps = getManJumps(white, up, Position{4, 4}, &board)
+	gs = GameState{board, white, up}
+
+	jumps = getManJumps(&gs, Position{4, 4})
 
 	if len(jumps) != 0 {
 		t.Errorf("length(jumps) == %d, should be 0", len(jumps))
@@ -64,7 +73,9 @@ func TestManJumps(t *testing.T) {
 	board[6][6] = "BM"
 	board[7][7] = "WM"
 
-	jumps = getManJumps(black, down, Position{4, 4}, &board)
+	gs = GameState{board, black, down}
+
+	jumps = getManJumps(&gs, Position{4, 4})
 
 	if len(jumps) != 0 {
 		t.Errorf("length(jumps) == %d, should be 0", len(jumps))
@@ -77,7 +88,9 @@ func TestKingMoves(t *testing.T) {
 	board[3][3] = "WK"
 	board[6][6] = "BM"
 
-	moves, jumps := getKingMoves(white, Position{3, 3}, &board)
+	gs := GameState{board, white, up}
+
+	moves, jumps := getKingMoves(&gs, Position{3, 3})
 
 	if len(moves)+len(jumps) != 12 {
 		t.Errorf("len(moves) len(jumps) == %d, should be 12", len(moves)+len(jumps))
@@ -86,9 +99,9 @@ func TestKingMoves(t *testing.T) {
 }
 
 func TestEvaluateBoard(t *testing.T) {
-	board := getBoard()
+	gs := createInitialState()
 
-	score := evaluateCurrentBoard(white, &board)
+	score := evaluateCurrentBoard(&gs)
 	target := 0.0
 	if score != target {
 		t.Errorf("Score is %f, but should be %f", score, target)
@@ -100,9 +113,12 @@ func TestMakeMove(t *testing.T) {
 	board[2][2] = "BK"
 	board[6][6] = "WM"
 
+	gs := GameState{board, white, up}
+
 	move := Move{Position{2, 2}, Position{7, 7}}
 
-	newBoard := makeMove(move, up, board)
+	newState := gs.makeMove(move)
+	newBoard := newState.board
 
 	if newBoard[2][2] != "" {
 		t.Errorf("Origin contains %s, but should be empty", newBoard[2][2])
@@ -141,7 +157,9 @@ func TestGetMoves(t *testing.T) {
 	board[3][3] = "BM"
 	board[4][4] = "WM"
 
-	move := getMoves(black, down, &board)
+	gs := GameState{board, black, down}
+
+	move := getMoves(&gs)
 	target := []Move{{Position{3, 3}, Position{5, 5}}}
 
 	if !cmp.Equal(move, target) {
@@ -156,7 +174,9 @@ func TestChooseBestMove(t *testing.T) {
 	board[3][3] = "BM"
 	board[4][4] = "WM"
 
-	move := chooseBestMove(black, down, &board, 5, true)
+	gs := GameState{board, black, down}
+
+	move := chooseBestMove(&gs, 5, true)
 	target := Move{Position{3, 3}, Position{5, 5}}
 
 	if move != target {
@@ -192,25 +212,25 @@ func TestTreeSearchVsAlphaBetaPruning(t *testing.T) {
 	searchDepth := 7
 	numberOfMoves := 10
 
-	play := func(alphaBetaPruning bool) [8][8]string {
-		board := getBoard()
+	play := func(alphaBetaPruning bool) GameState {
+		state := createInitialState()
 		color := white
 		dir := up
 
 		for i := 0; i < numberOfMoves; i++ {
-			move := chooseBestMove(color, dir, &board, searchDepth, alphaBetaPruning)
-			board = makeMove(move, dir, board)
+			move := chooseBestMove(&state, searchDepth, alphaBetaPruning)
+			state = state.makeMove(move)
 			color = oppositeColor(color)
 			dir = oppositeDirection(dir)
 		}
-		return board
+		return state
 	}
 
 	board1 := play(true)
 	board2 := play(false)
 
-	printBoard(&board1)
-	printBoard(&board2)
+	fmt.Println(board1)
+	fmt.Println(board2)
 
 	if board1 != board2 {
 		t.Error("Alpha-Beta pruning yields different results!")
@@ -218,10 +238,10 @@ func TestTreeSearchVsAlphaBetaPruning(t *testing.T) {
 }
 
 func BenchmarkChooseBestMove(b *testing.B) {
-	board := getBoard()
+	gs := createInitialState()
 
 	for i := 0; i < b.N; i++ {
-		chooseBestMove(white, up, &board, 7, true)
+		chooseBestMove(&gs, 7, true)
 	}
 
 }
