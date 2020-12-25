@@ -69,6 +69,39 @@ func (gs GameState) String() string {
 	return boardToString(&gs.board)
 }
 
+func (gs GameState) makeMove(move Move) GameState {
+	noMove := Move{Position{0, 0}, Position{0, 0}}
+	if move == noMove {
+		return GameState{
+			board:            gs.board,
+			currentPlayer:    oppositeColor(gs.currentPlayer),
+			currentDirection: oppositeDirection(gs.currentDirection),
+		}
+	}
+
+	board := gs.board
+	dir := gs.currentDirection
+
+	destI, destJ := move.To.I, move.To.J
+	origI, origJ := move.From.I, move.From.J
+	token := board[origI][origJ]
+	if (destI == 0 && dir == up) || (destI == boardSize-1 && dir == down) {
+		token = toKing(token)
+	}
+	board[destI][destJ] = token
+	board[origI][origJ] = ""
+	dI := origI - destI
+	dI /= abs(dI)
+	dJ := origJ - destJ
+	dJ /= abs(dJ)
+	board[destI+dI][destJ+dJ] = ""
+	return GameState{
+		board:            board,
+		currentPlayer:    oppositeColor(gs.currentPlayer),
+		currentDirection: oppositeDirection(gs.currentDirection),
+	}
+}
+
 func createInitialState() GameState {
 	return GameState{
 		board:            getBoard(),
@@ -276,7 +309,7 @@ func getManJumps(
 		return []Move{}
 	}
 
-	for dj := range []int{-1, 1} {
+	for _, dj := range []int{-1, 1} {
 		jEnemy = j + dj
 		if jEnemy == 0 || jEnemy == 7 || !withinBounds(jEnemy) {
 			continue
@@ -373,39 +406,6 @@ func toKing(token string) string {
 	return token[:1] + "K"
 }
 
-func makeMove(gs GameState, move Move) GameState {
-	noMove := Move{Position{0, 0}, Position{0, 0}}
-	if move == noMove {
-		return GameState{
-			board:            gs.board,
-			currentPlayer:    oppositeColor(gs.currentPlayer),
-			currentDirection: oppositeDirection(gs.currentDirection),
-		}
-	}
-
-	board := gs.board
-	dir := gs.currentDirection
-
-	destI, destJ := move.To.I, move.To.J
-	origI, origJ := move.From.I, move.From.J
-	token := board[origI][origJ]
-	if (destI == 0 && dir == up) || (destI == boardSize-1 && dir == down) {
-		token = toKing(token)
-	}
-	board[destI][destJ] = token
-	board[origI][origJ] = ""
-	dI := origI - destI
-	dI /= abs(dI)
-	dJ := origJ - destJ
-	dJ /= abs(dJ)
-	board[destI+dI][destJ+dJ] = ""
-	return GameState{
-		board:            board,
-		currentPlayer:    oppositeColor(gs.currentPlayer),
-		currentDirection: oppositeDirection(gs.currentDirection),
-	}
-}
-
 func min(numbers []float64) (m float64, e error) {
 	if len(numbers) == 0 {
 		return 0, errors.New("slice is empty")
@@ -452,7 +452,7 @@ func evaluateBoard(
 	}
 
 	for _, move := range moves {
-		newState := makeMove(*gs, move)
+		newState := gs.makeMove(move)
 		newOppScore := evaluateBoard(
 			&newState,
 			depthRemaining-1,
@@ -499,7 +499,7 @@ func chooseBestMove(
 	for _, move := range moves {
 		var newScore float64
 		log.Printf("Evaluate move %v", move)
-		newState := makeMove(*gs, move)
+		newState := gs.makeMove(move)
 		newScore = -evaluateBoard(
 			&newState,
 			maxDepth,
@@ -536,7 +536,7 @@ func aiVsAi(maxDepth int, alphaBetaPruning bool) {
 	for true {
 		move := chooseBestMove(&state, maxDepth, alphaBetaPruning)
 		log.Println("Make move", move)
-		state = makeMove(state, move)
+		state = state.makeMove(move)
 		clear()
 		fmt.Print(state)
 		time.Sleep(300 * time.Millisecond)
@@ -614,7 +614,7 @@ func gameAgainstAI(maxDepth int, alphaBetaPruning bool) {
 			continue
 		}
 		log.Println("Making move", move)
-		state = makeMove(state, move)
+		state = state.makeMove(move)
 		clear()
 		fmt.Print(state)
 
@@ -626,7 +626,7 @@ func gameAgainstAI(maxDepth int, alphaBetaPruning bool) {
 		slp := math.Max(float64(delay-duration), 0)
 		log.Println("Sleep", slp, "duration:", duration)
 		time.Sleep(time.Duration(slp) * time.Millisecond)
-		state = makeMove(state, move)
+		state = state.makeMove(move)
 		clear()
 		fmt.Print(state)
 
